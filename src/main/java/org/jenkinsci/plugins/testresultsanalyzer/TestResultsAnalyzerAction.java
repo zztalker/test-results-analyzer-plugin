@@ -97,7 +97,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		JSONArray jsonArray;
 		int noOfBuilds = getNoOfBuildRequired(noOfbuildsNeeded);
 
-		jsonArray = getBuildsArray(getBuildList(noOfBuilds));
+		jsonArray = getBuildsArray(getBuildList(noOfBuilds, userConfig.getBuildFilter()));
 
 		return jsonArray;
 	}
