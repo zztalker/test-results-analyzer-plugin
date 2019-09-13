@@ -44,7 +44,6 @@ public class PackageInfo extends Info {
 	public void addClasses(Integer buildNumber, String runName, TabulatedResult packageResult, String url) {
 		for (TestResult classResult : packageResult.getChildren()) {
 			String className = classResult.getName();
-			LOG.warning(className);
 			ClassInfo classInfo;
 			if (classes.containsKey(className)) {
 				classInfo = classes.get(className);

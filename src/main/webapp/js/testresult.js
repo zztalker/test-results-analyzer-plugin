@@ -88,6 +88,7 @@ function getUserConfig(){
 
     var hideConfig = $j("#hide-config-methods").is(":checked");
     userConfig["hideConfigMethods"] = hideConfig;
+    userConfig["buildFilter"] = $j("#build-filter").val().toLowerCase();
     return userConfig;
 }
 

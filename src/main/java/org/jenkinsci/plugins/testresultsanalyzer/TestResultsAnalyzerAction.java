@@ -36,6 +36,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 	private final static Logger LOG = Logger.getLogger(TestResultsAnalyzerAction.class.getName());
 
 	ResultInfo resultInfo;
+	private int overrideNoOfFetch = 0;
 
 	public TestResultsAnalyzerAction(@SuppressWarnings("rawtypes") Job project) {
 		this.project = project;
@@ -109,15 +110,52 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		return jsonArray;
 	}
 
-	private List<Integer> getBuildList(int noOfBuilds) {
-		if ((noOfBuilds <= 0) || (noOfBuilds >= builds.size())) {
+	private List<Integer> getBuildList(int noOfBuilds, String buildFilter) {
+		LOG.info("getBuildList ("+String.valueOf(noOfBuilds)+", "+buildFilter+") build list size: "+String.valueOf(builds.size()));
+		List<Integer> buildFilterIds = new ArrayList<Integer>();
+		if (!buildFilter.isEmpty()) {
+			for (String build: buildFilter.split(",")) {
+				LOG.info("filtered part "+build);
+				if (build.contains("-")) {
+					String[] builds = build.split("-");
+					for (int i = Integer.parseInt(builds[0]); i <= Integer.parseInt(builds[1]); i++) {
+						buildFilterIds.add(i);
+					}
+				}
+				else if (build.startsWith("!")) {
+					LOG.info("remove "+build.substring(1));
+					buildFilterIds.remove(Integer.valueOf(build.substring(1)));
+
+				}
+				else {
+					LOG.info("add "+build.substring(1));
+					buildFilterIds.add(Integer.parseInt(build));
+				}
+			}
+		}
+		LOG.info("BuildFilter -> "+String.valueOf(buildFilterIds));
+
+		if (noOfBuilds > builds.size()) {
+			overrideNoOfFetch = overrideNoOfFetch + noOfBuilds - builds.size();
+			LOG.info("ReFetch "+String.valueOf(overrideNoOfFetch)+" builds");
+			builds.clear();
+			getJsonLoadData();
+		}
+		else if ((noOfBuilds <= 0) && (buildFilterIds.isEmpty())) {
+
 			return builds;
+		}
+		else {
+			noOfBuilds = builds.size();
 		}
 
 		List<Integer> buildList = new ArrayList<Integer>();
 
-		for(int i = 0; i < noOfBuilds; i++) {
-			buildList.add(builds.get(i));
+		for(int i = 0; (i < noOfBuilds) || (i < builds.size()); i++) {
+			Integer build_id = builds.get(i);
+			if ((buildFilterIds.contains(build_id)) || (buildFilterIds.isEmpty())) {
+				buildList.add(builds.get(i));
+			}
 		}
 
 		return buildList;
@@ -146,6 +184,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public void getJsonLoadData() {
+		LOG.info("Get data for report [isUpdated = "+String.valueOf(isUpdated())+"]");
 		if (!isUpdated()) {
 			return;
 		}
@@ -158,7 +197,9 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		    runs = project.getBuilds().limit(getNoOfRunsToFetch());
         } else {
 		    runs = project.getBuilds();
-        }
+		}
+		LOG.info("Num of build fetched "+String.valueOf(runs.size()));
+
 		for (Run run : runs) {
 			if(run.isBuilding()) {
 				continue;
@@ -169,7 +210,6 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 
 			List<AbstractTestResultAction> testActions = run.getActions(AbstractTestResultAction.class);
 			for (AbstractTestResultAction testAction : testActions) {
-				LOG.warning("DBG: " + testAction);
 				if (AggregatedTestResultAction.class.isInstance(testAction)) {
 					addTestResults(buildNumber, (AggregatedTestResultAction) testAction);
 				} else {
@@ -181,9 +221,9 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 
 	private void addTestResults(int buildNumber, AggregatedTestResultAction testAction) {
 		List<AggregatedTestResultAction.ChildReport> childReports = testAction.getChildReports();
-		LOG.warning("DBG: reports size: "+String.valueOf(childReports.size()));
+		LOG.warning("Processing build "+String.valueOf(buildNumber)+" reports size: "+String.valueOf(childReports.size()));
 		for (AggregatedTestResultAction.ChildReport childReport : childReports) {
-			LOG.warning("DBG: "+childReport);
+			LOG.warning(" child report: "+childReport.run.getDisplayName());
 			addTestResult(buildNumber, childReport.run, testAction, childReport.result);
 		}
 	}
@@ -213,8 +253,11 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 			return new JSONObject();
 		}
 
-        int noOfBuilds = getNoOfBuildRequired(userConfig.getNoOfBuildsNeeded());
-        List<Integer> buildList = getBuildList(noOfBuilds);
+		int noOfBuilds = getNoOfBuildRequired(userConfig.getNoOfBuildsNeeded());
+		LOG.warning("No of build needed: " + userConfig.getNoOfBuildsNeeded());
+		LOG.warning("No of build fetched: " + String.valueOf(noOfBuilds));
+		LOG.warning("Build filter: "+userConfig.getBuildFilter());
+        List<Integer> buildList = getBuildList(noOfBuilds, userConfig.getBuildFilter());
 
         JsTreeUtil jsTreeUtils = new JsTreeUtil();
 		return jsTreeUtils.getJsTree(buildList, resultInfo, userConfig.isHideConfigMethods());
@@ -225,7 +268,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		boolean isTimeBased = Boolean.parseBoolean(timeBased);
         Map<String, PackageInfo> packageResults = resultInfo.getPackageResults();
 		int noOfBuilds = getNoOfBuildRequired(noOfBuildsNeeded);
-		List<Integer> buildList = getBuildList(noOfBuilds);
+		List<Integer> buildList = getBuildList(noOfBuilds, userConfig.getBuildFilter());
 
 		StringBuffer builder = new StringBuffer("");
         for (int i = 0; i < buildList.size(); i++) {
@@ -297,7 +340,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 	}
 
 	public int getNoOfRunsToFetch() {
-		return TestResultsAnalyzerExtension.DESCRIPTOR.getNoOfRunsToFetch();
+		return TestResultsAnalyzerExtension.DESCRIPTOR.getNoOfRunsToFetch() + overrideNoOfFetch;
 	}
 
 	public boolean getShowAllBuilds() {

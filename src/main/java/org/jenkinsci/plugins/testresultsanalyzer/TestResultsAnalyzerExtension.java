@@ -143,8 +143,7 @@ public class TestResultsAnalyzerExtension extends TransientActionFactory<Job> im
 		public String getNoOfBuilds() { return noOfBuilds; }
 
         public int getNoOfRunsToFetch() {
-            LOG.warning("DBG: "+String.valueOf(noOfRunsToFetch));
-            return Integer.parseInt(noOfBuilds);
+            return noOfRunsToFetch; // Integer.parseInt(noOfBuilds);
         }
 
         public boolean getShowAllBuilds() { return showAllBuilds; }

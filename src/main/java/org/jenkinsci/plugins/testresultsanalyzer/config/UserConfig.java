@@ -9,11 +9,13 @@ public class UserConfig {
     private boolean hideConfigMethods = false;
 
     private String noOfBuildsNeeded;
+    private String buildFilter = "";
 
     @DataBoundConstructor
-    public UserConfig(String noOfBuildsNeeded, boolean hideConfigMethods) {
+    public UserConfig(String noOfBuildsNeeded, boolean hideConfigMethods, String buildFilter) {
         this.noOfBuildsNeeded = noOfBuildsNeeded;
         this.hideConfigMethods = hideConfigMethods;
+        this.buildFilter = buildFilter;
     }
 
     public boolean isHideConfigMethods() {
@@ -30,5 +32,13 @@ public class UserConfig {
 
     public void setNoOfBuildsNeeded(String noOfBuildsNeeded) {
         this.noOfBuildsNeeded = noOfBuildsNeeded;
+    }
+
+    public void setBuildFiler(String buildFilter) {
+        this.buildFilter = buildFilter;
+    }
+
+    public String getBuildFilter() {
+        return buildFilter;
     }
 }
