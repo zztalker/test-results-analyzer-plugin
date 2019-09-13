@@ -73,6 +73,7 @@ function populateTemplate(){
         addEvents();
         generateCharts();
         $j("#table-loading").hide();
+        searchTests();
     },this));
 }
 

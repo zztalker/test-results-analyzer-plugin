@@ -151,7 +151,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 
 		List<Integer> buildList = new ArrayList<Integer>();
 
-		for(int i = 0; (i < noOfBuilds) || (i < builds.size()); i++) {
+		for(int i = 0; (i < noOfBuilds) && (i < builds.size()); i++) {
 			Integer build_id = builds.get(i);
 			if ((buildFilterIds.contains(build_id)) || (buildFilterIds.isEmpty())) {
 				buildList.add(builds.get(i));

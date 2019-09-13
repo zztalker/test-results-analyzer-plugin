@@ -87,7 +87,7 @@ var $j = jQuery.noConflict();
 	</div>
 </div>
 <button id="downloadCSV" >Download Test (CSV)</button>
-Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package" onkeyup="searchTests()"/>
+Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package"/>
 
 <div class="extrabuttons">
 	<button id="expandall">Expand All</button>
@@ -168,6 +168,12 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 		} else {
 			jQuery("#chartDataType").val("passfail");
 		}
+
+		jQuery("#filter").on('keyup', function (e) {
+    		if (e.keyCode === 13) {
+        		searchTests();
+    		}
+		});
 		setCustomStatuses();
 		populateTemplate();
 	});
