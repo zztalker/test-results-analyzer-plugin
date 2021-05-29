@@ -93,7 +93,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 	}
 
 	@JavaScriptMethod
-	public JSONArray getNoOfBuilds(String noOfbuildsNeeded) {
+	public JSONArray getNoOfBuilds(String noOfbuildsNeeded, UserConfig userConfig) {
 		JSONArray jsonArray;
 		int noOfBuilds = getNoOfBuildRequired(noOfbuildsNeeded);
 
@@ -124,8 +124,12 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 				}
 				else if (build.startsWith("!")) {
 					LOG.info("remove "+build.substring(1));
+					if(buildFilter.split(",").length == 1){
+						for (int i = 0; i <= builds.size(); i++){
+							buildFilterIds.add(i);
+						}
+					}
 					buildFilterIds.remove(Integer.valueOf(build.substring(1)));
-
 				}
 				else {
 					LOG.info("add "+build.substring(1));
@@ -264,7 +268,7 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
     }
 
 	@JavaScriptMethod
-    public String getExportCSV(String timeBased, String noOfBuildsNeeded) {
+    public String getExportCSV(String timeBased, String noOfBuildsNeeded, UserConfig userConfig) {
 		boolean isTimeBased = Boolean.parseBoolean(timeBased);
         Map<String, PackageInfo> packageResults = resultInfo.getPackageResults();
 		int noOfBuilds = getNoOfBuildRequired(noOfBuildsNeeded);

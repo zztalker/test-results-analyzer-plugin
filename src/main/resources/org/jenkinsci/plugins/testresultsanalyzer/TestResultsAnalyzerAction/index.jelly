@@ -87,6 +87,7 @@ var $j = jQuery.noConflict();
 	</div>
 </div>
 <button id="downloadCSV" >Download Test (CSV)</button>
+<button id="deletefilter">Delete filter from cache</button>
 Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package"/>
 
 <div class="extrabuttons">
@@ -174,6 +175,9 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
         		searchTests();
     		}
 		});
+		if(localStorage.getItem('build-filter') != ""){
+            document.getElementById('build-filter').value = localStorage.getItem('build-filter');
+        }
 		setCustomStatuses();
 		populateTemplate();
 	});
@@ -209,7 +213,18 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 
 	jQuery("#getbuildreport").click(function () {
 		populateTemplate();
+		if(document.getElementById('build-filter').value != ""){
+		    localStorage.setItem('build-filter', document.getElementById('build-filter').value);
+		}
 	});
+
+    jQuery("#deletefilter").click(function () {
+    	if(localStorage.getItem('build-filter') != ""){
+            localStorage.removeItem('build-filter');
+            document.getElementById('build-filter').value = "";
+            populateTemplate();
+    	}
+    });
 
 	jQuery("#expandall").click(function () {
 		expandAll();
