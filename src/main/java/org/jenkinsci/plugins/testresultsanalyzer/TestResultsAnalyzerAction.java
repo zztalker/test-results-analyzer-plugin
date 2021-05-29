@@ -21,11 +21,8 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.jenkinsci.plugins.testresultsanalyzer.config.UserConfig;
-import org.jenkinsci.plugins.testresultsanalyzer.result.info.ResultInfo;
+import org.jenkinsci.plugins.testresultsanalyzer.result.info.*;
 import org.jenkinsci.plugins.testresultsanalyzer.result.data.ResultData;
-import org.jenkinsci.plugins.testresultsanalyzer.result.info.ClassInfo;
-import org.jenkinsci.plugins.testresultsanalyzer.result.info.PackageInfo;
-import org.jenkinsci.plugins.testresultsanalyzer.result.info.TestCaseInfo;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 public class TestResultsAnalyzerAction extends Actionable implements Action {
@@ -125,11 +122,25 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 				else if (build.startsWith("!")) {
 					LOG.info("remove "+build.substring(1));
 					if(buildFilter.split(",").length == 1){
-						for (int i = 0; i <= builds.size(); i++){
-							buildFilterIds.add(i);
+						for (int b: builds) {
+							if(b != Integer.valueOf(build.substring(1))){
+								buildFilterIds.add(b);
+							}
 						}
 					}
-					buildFilterIds.remove(Integer.valueOf(build.substring(1)));
+					else{
+						buildFilterIds.remove(buildFilterIds.indexOf(Integer.parseInt(build.substring(1))));
+					}
+				}
+				else if(build.startsWith("cont")){
+					LOG.info("contains "+build.substring(4));
+					if(buildFilter.split(",").length == 1){
+						for (int b: builds) {
+							if(String.valueOf(new Integer(b)).contains(build.substring(4))){
+								buildFilterIds.add(b);
+							}
+						}
+					}
 				}
 				else {
 					LOG.info("add "+build.substring(1));

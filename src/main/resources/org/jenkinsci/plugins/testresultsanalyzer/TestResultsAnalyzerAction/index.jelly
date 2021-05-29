@@ -51,7 +51,7 @@ var $j = jQuery.noConflict();
 			</td>
 		</tr>
 		<tr>
-			<td>Build filter, [A-B,C,!D] syntax allowed: </td>
+			<td>Build filter, [A-B,C,!D, contE] syntax allowed: </td>
 			<td>
 				<input id="build-filter" type="text" value=""/>
 			</td>
@@ -86,8 +86,8 @@ var $j = jQuery.noConflict();
 		<button id="getbuildreport">Update</button>
 	</div>
 </div>
-<button id="downloadCSV" >Download Test (CSV)</button>
 <button id="deletefilter">Delete filter from cache</button>
+<button id="downloadCSV" >Download Test (CSV)</button>
 Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package"/>
 
 <div class="extrabuttons">
@@ -143,10 +143,10 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
     }
 	function generateCharts() {
 		var chartType = {
-			type: jQuery("#chartDataType").val(),
-			line: jQuery('#linegraph').is(':checked'),
-			bar: jQuery('#bargraph').is(':checked'),
-			pie: jQuery('#piegraph').is(':checked')
+			type: document.getElementById('chartDataType').value,
+			line: document.getElementById('linegraph').checked,
+			bar: document.getElementById('bargraph').checked,
+			pie: document.getElementById('piegraph').checked,
 		}
 		generateChart(chartType);
 
@@ -154,33 +154,35 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 		window.dispatchEvent(new Event('resize'));
 	}
 
-	jQuery(document).ready(function () {
-		jQuery("#allnoofbuilds")[0].checked = ${it.showAllBuilds};
-		jQuery("#show-build-durations")[0].checked = ${it.showBuildTime};
-		jQuery("#hide-config-methods")[0].checked = ${it.hideConfigurationMethods};
-		jQuery("#linegraph")[0].checked = ${it.showLineGraph};
-		jQuery("#bargraph")[0].checked = ${it.showBarGraph};
-		jQuery("#piegraph")[0].checked = ${it.showPieGraph};
-		jQuery("#noofbuilds").attr('disabled', ${it.showAllBuilds});
+    document.addEventListener("DOMContentLoaded", function(event) {
+        document.getElementById('allnoofbuilds').checked = ${it.showAllBuilds};
+        document.getElementById('show-build-durations').checked = ${it.showBuildTime};
+        document.getElementById('hide-config-methods').checked = ${it.hideConfigurationMethods};
+        document.getElementById('linegraph').checked = ${it.showLineGraph};
+        document.getElementById('bargraph').checked = ${it.showBarGraph};
+        document.getElementById('piegraph').checked = ${it.showPieGraph};
+        document.getElementById('noofbuilds').disabled = ${it.showAllBuilds};
+        if ("${it.chartDataType}" === "runtime") {
+            document.getElementById('chartDataType').value = "runtime";
+            document.getElementById('bargraph').disabled = true;
+        }
+        else {
+            document.getElementById('chartDataType').value = "passfail";
+        }
 
-		if ("${it.chartDataType}" === "runtime") {
-			jQuery("#chartDataType").val("runtime");
-			jQuery("#bargraph").attr('disabled', true);
-		} else {
-			jQuery("#chartDataType").val("passfail");
-		}
+        document.querySelector('#build-filter').addEventListener('keydown', function(e) {
+            if (e.keyCode === 13){
+                populateTemplate();
+                localStorage.setItem('build-filter', document.getElementById('build-filter').value);
+            }
+            });
 
-		jQuery("#filter").on('keyup', function (e) {
-    		if (e.keyCode === 13) {
-        		searchTests();
-    		}
-		});
-		if(localStorage.getItem('build-filter') != ""){
+        if(localStorage.getItem('build-filter') != ""){
             document.getElementById('build-filter').value = localStorage.getItem('build-filter');
         }
-		setCustomStatuses();
-		populateTemplate();
-	});
+        setCustomStatuses();
+        populateTemplate();
+    });
 
 	jQuery("#settingsmenubutton").click(function () {
 		jQuery("#settingsmenu").slideToggle(400, function () {
@@ -192,47 +194,34 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 		window.dispatchEvent(new Event('resize'));
 	});
 
-	jQuery("#allnoofbuilds").change(function () {
-		jQuery("#noofbuilds").attr('disabled', this.checked);
-	});
+	allnoofbuilds.onchange = () => document.getElementById('noofbuilds').disabled = document.getElementById('allnoofbuilds').checked
 
-	jQuery("#chartDataType").change(function (e) {
-		jQuery("#bargraph").attr('disabled', e.target.value == "runtime");
-	});
+	chartDataType.onchange = () => document.getElementById('chartDataType').value == "runtime" ? document.getElementById('bargraph').disabled = "runtime" : document.getElementById('bargraph').disabled = ""
 
-	jQuery("#downloadCSV").click(function () {
-	    var noOfBuilds = "-1";
-
-        if (!jQuery("#allnoofbuilds").is(":checked")) {
-            noOfBuilds = jQuery("#noofbuilds").val();
-        }
+    downloadCSV.onclick = () => {
+        var noOfBuilds = "-1";
+        if (!document.getElementById('allnoofbuilds').checked)
+            noOfBuilds = document.getElementById('noofbuilds').value;
         remoteAction.getExportCSV(displayValues, noOfBuilds, function(t) {
             download("Test Results.csv", t.responseObject());
         })
-    });
+    }
 
-	jQuery("#getbuildreport").click(function () {
-		populateTemplate();
-		if(document.getElementById('build-filter').value != ""){
-		    localStorage.setItem('build-filter', document.getElementById('build-filter').value);
-		}
-	});
+    getbuildreport.onclick = () => {
+        populateTemplate();
+        localStorage.setItem('build-filter', document.getElementById('build-filter').value);
+    }
 
-    jQuery("#deletefilter").click(function () {
-    	if(localStorage.getItem('build-filter') != ""){
+    deletefilter.onclick = () => {
+        if(localStorage.getItem('build-filter') != ""){
             localStorage.removeItem('build-filter');
             document.getElementById('build-filter').value = "";
             populateTemplate();
-    	}
-    });
+        }
+    }
 
-	jQuery("#expandall").click(function () {
-		expandAll();
-	});
-
-	jQuery("#collapseall").click(function () {
-		collapseAll();
-	});
+    expandall.onclick = () => expandAll()
+    collapseall.onclick = () => collapseAll()
 
     function setCustomStatuses(){
         customStatuses['PASSED'] = "${it.passedRepresentation}";
