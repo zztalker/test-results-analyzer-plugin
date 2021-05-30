@@ -132,13 +132,16 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 						buildFilterIds.remove(buildFilterIds.indexOf(Integer.parseInt(build.substring(1))));
 					}
 				}
-				else if(build.startsWith("cont")){
-					LOG.info("contains "+build.substring(4));
+				else if(build.startsWith("'") && build.endsWith("'")){
 					if(buildFilter.split(",").length == 1){
-						for (int b: builds) {
-							if(String.valueOf(new Integer(b)).contains(build.substring(4))){
-								buildFilterIds.add(b);
+						int i = 0;
+						for (Iterator it = project.getBuilds().iterator(); it.hasNext(); ) {
+							Object obj = it.next();
+							String displayName = obj.toString().replace(project.getName() + "", "");
+							if(displayName.contains(buildFilter.replace("'", ""))){
+								buildFilterIds.add(builds.get(i));
 							}
+							i++;
 						}
 					}
 				}

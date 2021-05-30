@@ -51,7 +51,7 @@ var $j = jQuery.noConflict();
 			</td>
 		</tr>
 		<tr>
-			<td>Build filter, [A-B,C,!D, contE] syntax allowed: </td>
+			<td>Build filter, [A-B,C,!D,'E'] syntax allowed: </td>
 			<td>
 				<input id="build-filter" type="text" value=""/>
 			</td>
@@ -175,13 +175,19 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
                 populateTemplate();
                 localStorage.setItem('build-filter', document.getElementById('build-filter').value);
             }
-            });
+        });
 
         if(localStorage.getItem('build-filter') != ""){
             document.getElementById('build-filter').value = localStorage.getItem('build-filter');
         }
         setCustomStatuses();
         populateTemplate();
+    });
+
+    document.querySelector('#filter').addEventListener('keyup', function(e) {
+        if (e.keyCode === 13){
+            searchTests();
+        }
     });
 
 	jQuery("#settingsmenubutton").click(function () {
