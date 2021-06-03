@@ -51,7 +51,7 @@ var $j = jQuery.noConflict();
 			</td>
 		</tr>
 		<tr>
-			<td>Build filter, [A-B,C,!D,'E'] syntax allowed: </td>
+			<td>Build filter, [A-B,C,!D,~RegExp] syntax allowed: </td>
 			<td>
 				<input id="build-filter" type="text" value=""/>
 			</td>
@@ -86,7 +86,10 @@ var $j = jQuery.noConflict();
 		<button id="getbuildreport">Update</button>
 	</div>
 </div>
-<button id="deletefilter">Delete filter from cache</button>
+<div>
+<button id="save_filter" >Save options</button>
+<button id="load_filter" >Load options</button>
+</div>
 <button id="downloadCSV" >Download Test (CSV)</button>
 Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package"/>
 
@@ -173,13 +176,8 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
         document.querySelector('#build-filter').addEventListener('keydown', function(e) {
             if (e.keyCode === 13){
                 populateTemplate();
-                localStorage.setItem('build-filter', document.getElementById('build-filter').value);
             }
         });
-
-        if(localStorage.getItem('build-filter') != ""){
-            document.getElementById('build-filter').value = localStorage.getItem('build-filter');
-        }
         setCustomStatuses();
         populateTemplate();
     });
@@ -215,15 +213,26 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 
     getbuildreport.onclick = () => {
         populateTemplate();
-        localStorage.setItem('build-filter', document.getElementById('build-filter').value);
     }
 
-    deletefilter.onclick = () => {
-        if(localStorage.getItem('build-filter') != ""){
-            localStorage.removeItem('build-filter');
-            document.getElementById('build-filter').value = "";
+    save_filter.onclick = () => remoteAction.saveBuildFilter(document.getElementById("noofbuilds").value != "" ? document.getElementById("noofbuilds").value : " ",
+                                                             document.getElementById("build-filter").value != "" ? document.getElementById("build-filter").value : " ",
+                                                             document.getElementById("show-build-durations").checked, document.getElementById("hide-config-methods").checked,
+                                                             document.getElementById("linegraph").checked, document.getElementById("bargraph").checked,
+                                                             document.getElementById("piegraph").checked);
+
+    load_filter.onclick = () =>{
+        remoteAction.readBuildFilter(function(t){
+            var settings = t.responseObject().split("|")
+            settings[0] != " " ? document.getElementById("noofbuilds").value = settings[0] : ""
+            settings[1] != " " ? document.getElementById("build-filter").value = settings[1] : ""
+            document.getElementById("show-build-durations").checked = (settings[2] === 'true')
+            document.getElementById("hide-config-methods").checked = (settings[3] === 'true')
+            document.getElementById("linegraph").checked = (settings[4] === 'true')
+            document.getElementById("bargraph").checked = (settings[5] === 'true')
+            document.getElementById("piegraph").checked = (settings[6] === 'true')
             populateTemplate();
-        }
+        })
     }
 
     expandall.onclick = () => expandAll()

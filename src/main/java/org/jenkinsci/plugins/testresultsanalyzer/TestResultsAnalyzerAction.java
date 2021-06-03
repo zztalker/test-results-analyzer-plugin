@@ -11,10 +11,18 @@ import hudson.tasks.test.AbstractTestResultAction;
 import hudson.tasks.test.TestResult;
 import hudson.util.RunList;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
@@ -24,6 +32,7 @@ import org.jenkinsci.plugins.testresultsanalyzer.config.UserConfig;
 import org.jenkinsci.plugins.testresultsanalyzer.result.info.*;
 import org.jenkinsci.plugins.testresultsanalyzer.result.data.ResultData;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
+
 
 public class TestResultsAnalyzerAction extends Actionable implements Action {
 
@@ -132,13 +141,15 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 						buildFilterIds.remove(buildFilterIds.indexOf(Integer.parseInt(build.substring(1))));
 					}
 				}
-				else if(build.startsWith("'") && build.endsWith("'")){
+				else if(build.startsWith("~")){
 					if(buildFilter.split(",").length == 1){
 						int i = 0;
 						for (Iterator it = project.getBuilds().iterator(); it.hasNext(); ) {
 							Object obj = it.next();
 							String displayName = obj.toString().replace(project.getName() + "", "");
-							if(displayName.contains(buildFilter.replace("'", ""))){
+							Pattern pattern = Pattern.compile (buildFilter.replace("~", ""));
+							Matcher matcher = pattern.matcher(displayName);
+							if (matcher.find()){
 								buildFilterIds.add(builds.get(i));
 							}
 							i++;
@@ -280,6 +291,39 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
         JsTreeUtil jsTreeUtils = new JsTreeUtil();
 		return jsTreeUtils.getJsTree(buildList, resultInfo, userConfig.isHideConfigMethods());
     }
+
+	@JavaScriptMethod
+    public void saveBuildFilter(String noofBuilds, String filter, Boolean duration, Boolean hide, Boolean line, Boolean bar, Boolean pie){
+		try{
+			String fileName = String.format(project.getRootDir().toPath()+"/settings");
+			File f = new File(fileName);
+			try(BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))){
+				writer.write(noofBuilds+"|"+filter+"|"+duration+"|"+hide+"|"+line+"|"+bar +"|"+pie);
+				LOG.info("FIlter added");
+			}
+			catch (Exception ex){
+				LOG.warning("ERROR "+ex);
+			}
+		}
+		catch (Exception ex){
+			LOG.warning("ERROR "+ex);
+		}
+	}
+
+	@JavaScriptMethod
+	public String readBuildFilter(){
+		try{
+			String fileName = String.format(project.getRootDir().toPath()+"/settings");
+			Path path = Paths.get(fileName);
+			String read = Files.readAllLines(path).get(0);
+			LOG.warning("SUCCESS READ FILTER: "+read);
+			return read;
+		}
+		catch (Exception ex){
+			LOG.warning("ERROR "+ex);
+			return null;
+		}
+	}
 
 	@JavaScriptMethod
     public String getExportCSV(String timeBased, String noOfBuildsNeeded, UserConfig userConfig) {
