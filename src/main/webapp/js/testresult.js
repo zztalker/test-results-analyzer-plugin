@@ -57,24 +57,38 @@ function reset(){
     resetCharts();
 }
 
-function populateTemplate(){
-    reset();
-    displayValues  = $j("#show-build-durations").is(":checked");
-    $j("#table-loading").show();
-    remoteAction.getTreeResult(getUserConfig(),$j.proxy(function(t) {
+function updateCache() {
+    remoteAction.updateAndGetBuilds(getUserConfig(), $j.proxy(function(t) {
         var itemsResponse = t.responseObject();
-        $j(".test-history-table").html(
-            analyzerTemplate(itemsResponse)
-        );
-        var worstTests = getWorstTests(itemsResponse);
-        $j(".worst-tests-table").html(
-            analyzerWorstTestsTemplate(worstTests)
-        );
-        addEvents();
-        generateCharts();
-        $j("#table-loading").hide();
-        searchTests();
+        loadDataFromCache(itemsResponse);
     },this));
+}
+
+function loadDataFromCache(itemsResponse) {
+    $j(".test-history-table").html(
+        analyzerTemplate(itemsResponse)
+    );
+    var worstTests = getWorstTests(itemsResponse);
+    $j(".worst-tests-table").html(
+        analyzerWorstTestsTemplate(worstTests)
+    );
+    addEvents();
+    generateCharts();
+    $j("#table-loading").hide();
+    searchTests();
+}
+
+
+function populateTemplate() {
+    reset();
+    displayValues = $j("#show-build-durations").is(":checked");
+    $j("#table-loading").show();
+    remoteAction.getCacheString(getUserConfig(), $j.proxy(function (cache) {
+        var loadedCache = cache.responseObject();
+        var itemsResponse = JSON.parse(loadedCache);
+        console.log('Loading from cache...');
+        loadDataFromCache(itemsResponse);
+    }))
 }
 
 function getUserConfig(){

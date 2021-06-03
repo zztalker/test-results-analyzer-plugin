@@ -87,6 +87,7 @@ var $j = jQuery.noConflict();
 	</div>
 </div>
 <button id="downloadCSV" >Download Test (CSV)</button>
+<button id="clearCache" >Clear Cache</button>
 Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package"/>
 
 <div class="extrabuttons">
@@ -206,6 +207,12 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
             download("Test Results.csv", t.responseObject());
         })
     });
+
+    jQuery("#clearCache").click(function() {
+        remoteAction.clearCache(function() {
+            console.log("Cache was deleted");
+        })
+    })
 
 	jQuery("#getbuildreport").click(function () {
 		populateTemplate();

@@ -1,31 +1,28 @@
 package org.jenkinsci.plugins.testresultsanalyzer;
 
-import hudson.model.Action;
-import hudson.model.Item;
-import hudson.model.Job;
-import hudson.model.Actionable;
-import hudson.model.Run;
+import hudson.model.*;
 import hudson.tasks.test.AggregatedTestResultAction;
 import hudson.tasks.test.TabulatedResult;
 import hudson.tasks.test.AbstractTestResultAction;
 import hudson.tasks.test.TestResult;
 import hudson.util.RunList;
-
+import java.io.*;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.logging.Logger;
-
 import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-
 import org.jenkinsci.plugins.testresultsanalyzer.config.UserConfig;
 import org.jenkinsci.plugins.testresultsanalyzer.result.info.ResultInfo;
 import org.jenkinsci.plugins.testresultsanalyzer.result.data.ResultData;
 import org.jenkinsci.plugins.testresultsanalyzer.result.info.ClassInfo;
 import org.jenkinsci.plugins.testresultsanalyzer.result.info.PackageInfo;
 import org.jenkinsci.plugins.testresultsanalyzer.result.info.TestCaseInfo;
+import org.json.simple.parser.ParseException;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 public class TestResultsAnalyzerAction extends Actionable implements Action {
@@ -38,8 +35,11 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 	ResultInfo resultInfo;
 	private int overrideNoOfFetch = 0;
 
+	private Cache cache;
+
 	public TestResultsAnalyzerAction(@SuppressWarnings("rawtypes") Job project) {
 		this.project = project;
+		cache = new Cache(project);
 	}
 
 	/**
@@ -92,8 +92,10 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		return this.project;
 	}
 
+
+
 	@JavaScriptMethod
-	public JSONArray getNoOfBuilds(String noOfbuildsNeeded) {
+	public JSONArray getNoOfBuilds(String noOfbuildsNeeded, UserConfig userConfig) {
 		JSONArray jsonArray;
 		int noOfBuilds = getNoOfBuildRequired(noOfbuildsNeeded);
 
@@ -157,11 +159,11 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 				buildList.add(builds.get(i));
 			}
 		}
-
 		return buildList;
 	}
 
 	private int getNoOfBuildRequired(String noOfbuildsNeeded) {
+
 		int noOfBuilds;
 		try {
 			noOfBuilds = Integer.parseInt(noOfbuildsNeeded);
@@ -177,21 +179,25 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		if (lastBuild == null) {
 			return false;
 		}
-
 		int latestBuildNumber = lastBuild.getNumber();
+		LOG.info(" " + lastBuild.getNumber());
 		return !(builds.contains(latestBuildNumber));
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public void getJsonLoadData() {
 		LOG.info("Get data for report [isUpdated = "+String.valueOf(isUpdated())+"]");
-		if (!isUpdated()) {
-			return;
+		try {
+			if (!cache.isEmpty()) {
+			if (!isUpdated() || !cache.isNeedsUpdate()) {
+				return;
+			}
+			}
+		} catch (IOException | ParseException e) {
+			e.printStackTrace();
 		}
-
 		resultInfo = new ResultInfo();
 		builds = new ArrayList<Integer>();
-
 		RunList<Run> runs = null;
 		if (getNoOfRunsToFetch() > 0) {
 		    runs = project.getBuilds().limit(getNoOfRunsToFetch());
@@ -204,10 +210,8 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 			if(run.isBuilding()) {
 				continue;
 			}
-
 			int buildNumber = run.getNumber();
 			builds.add(buildNumber);
-
 			List<AbstractTestResultAction> testActions = run.getActions(AbstractTestResultAction.class);
 			for (AbstractTestResultAction testAction : testActions) {
 				if (AggregatedTestResultAction.class.isInstance(testAction)) {
@@ -232,8 +236,6 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		if (run == null || result == null) {
 			return;
 		}
-
-
 		try {
 			TabulatedResult testResult = (TabulatedResult) result;
 			Collection<? extends TestResult> packageResults = testResult.getChildren();
@@ -247,29 +249,55 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 		}
 	}
 
-    @JavaScriptMethod
-    public JSONObject getTreeResult(UserConfig userConfig) {
+	private JSONObject generateJsonBuilds(UserConfig userConfig) {
 		if (resultInfo == null) {
 			return new JSONObject();
 		}
-
 		int noOfBuilds = getNoOfBuildRequired(userConfig.getNoOfBuildsNeeded());
 		LOG.warning("No of build needed: " + userConfig.getNoOfBuildsNeeded());
 		LOG.warning("No of build fetched: " + String.valueOf(noOfBuilds));
-		LOG.warning("Build filter: "+userConfig.getBuildFilter());
-        List<Integer> buildList = getBuildList(noOfBuilds, userConfig.getBuildFilter());
-
-        JsTreeUtil jsTreeUtils = new JsTreeUtil();
+		LOG.warning("Build filter: " + userConfig.getBuildFilter());
+		List<Integer> buildList = getBuildList(noOfBuilds, userConfig.getBuildFilter());
+		JsTreeUtil jsTreeUtils = new JsTreeUtil();
 		return jsTreeUtils.getJsTree(buildList, resultInfo, userConfig.isHideConfigMethods());
-    }
+	}
+
+	private void saveCache(UserConfig userConfig) throws IOException {
+		JSONObject builds = generateJsonBuilds(userConfig);
+		cache.save(builds);
+	}
 
 	@JavaScriptMethod
-    public String getExportCSV(String timeBased, String noOfBuildsNeeded) {
+	public String getCacheString(UserConfig userConfig) throws IOException, ParseException {
+		if (cache.isEmpty() || cache.isNeedsUpdate()) {
+			LOG.info("Updating cache...");
+			saveCache(userConfig);
+		}
+		LOG.info("Loading cache...");
+		return cache.getData();
+	}
+
+	@JavaScriptMethod
+    public JSONObject updateAndGetBuilds(UserConfig userConfig) throws IOException, ParseException {
+		if (cache.isEmpty() || cache.isNeedsUpdate()) {
+			return generateJsonBuilds(userConfig);
+		} else {
+			return JSONObject.fromObject(cache.getData());
+		}
+    }
+
+    @JavaScriptMethod
+	public void clearCache() {
+		cache.delete();
+	}
+
+	@JavaScriptMethod
+    public String getExportCSV(String timeBased, String noOfBuildsNeeded, UserConfig userConfig) {
 		boolean isTimeBased = Boolean.parseBoolean(timeBased);
         Map<String, PackageInfo> packageResults = resultInfo.getPackageResults();
 		int noOfBuilds = getNoOfBuildRequired(noOfBuildsNeeded);
 		List<Integer> buildList = getBuildList(noOfBuilds, userConfig.getBuildFilter());
-
+		LOG.info("GetExport");
 		StringBuffer builder = new StringBuffer("");
         for (int i = 0; i < buildList.size(); i++) {
             builder.append(",\"");
@@ -401,17 +429,5 @@ public class TestResultsAnalyzerAction extends Actionable implements Action {
 
     public String getPassedColor() {
         return TestResultsAnalyzerExtension.DESCRIPTOR.getPassedColor();
-    }
-
-    public String getFailedColor() {
-        return TestResultsAnalyzerExtension.DESCRIPTOR.getFailedColor();
-    }
-
-    public String getSkippedColor() {
-        return TestResultsAnalyzerExtension.DESCRIPTOR.getSkippedColor();
-    }
-
-    public String getNaColor() {
-        return TestResultsAnalyzerExtension.DESCRIPTOR.getNaColor();
     }
 }
