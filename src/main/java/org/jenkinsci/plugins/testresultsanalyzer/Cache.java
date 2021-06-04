@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.testresultsanalyzer;
 import hudson.model.Job;
 import net.sf.json.JSONObject;
-import org.jfree.util.Log;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import java.io.*;
@@ -13,13 +12,11 @@ import java.util.logging.Logger;
 public class Cache {
     private final Job job;
     private final File file;
-    private final String pathName;
     private final Logger LOG = Logger.getLogger(Cache.class.getName());
 
     public Cache(Job job) {
         this.job = job;
-        this.pathName = "work/jobs/%s/cache.json";
-        file = new File(String.format(this.pathName, job.getName()));
+        file = new File(job.getRootDir() +  "/cache.json");
         tryCreateFile();
     }
 
@@ -34,7 +31,7 @@ public class Cache {
         }
     }
 
-    private void tryCreateFile()  {
+    private void tryCreateFile() {
         try {
             createFile();
         } catch (IOException e) {
@@ -56,7 +53,7 @@ public class Cache {
     }
 
     public String getData() throws IOException {
-        Path path = Paths.get(String.format(this.pathName, job.getName()));
+        Path path = Paths.get(file.getPath());
         return new String(Files.readAllBytes(path));
     }
 
