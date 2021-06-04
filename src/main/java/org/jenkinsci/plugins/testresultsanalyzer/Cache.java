@@ -1,17 +1,20 @@
 package org.jenkinsci.plugins.testresultsanalyzer;
 import hudson.model.Job;
 import net.sf.json.JSONObject;
+import org.jfree.util.Log;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.logging.Logger;
 
 public class Cache {
     private final Job job;
     private final File file;
     private final String pathName;
+    private final Logger LOG = Logger.getLogger(Cache.class.getName());
 
     public Cache(Job job) {
         this.job = job;
@@ -24,9 +27,9 @@ public class Cache {
         if (!file.exists()) {
             boolean isCreated = file.createNewFile();
             if (isCreated) {
-                System.out.println("Cache file was created successfully");
+                LOG.info("Cache file was created successfully");
             } else {
-                System.out.println("Cache file has already been created");
+                LOG.info("Cache file has already been created");
             }
         }
     }
@@ -69,7 +72,7 @@ public class Cache {
 
     public void delete() {
         if (file.delete()) {
-            System.out.println("Cache was deleted");
+            LOG.info("Cache was deleted");
         }
     }
 }
