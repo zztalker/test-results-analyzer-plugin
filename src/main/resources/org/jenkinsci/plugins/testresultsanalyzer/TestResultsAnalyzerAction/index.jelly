@@ -51,7 +51,7 @@ var $j = jQuery.noConflict();
 			</td>
 		</tr>
 		<tr>
-			<td>Build filter, [A-B,C,!D] syntax allowed: </td>
+			<td>Build filter, [A-B,C,!D,~RegExp] syntax allowed: </td>
 			<td>
 				<input id="build-filter" type="text" value=""/>
 			</td>
@@ -85,6 +85,10 @@ var $j = jQuery.noConflict();
 	<div>
 		<button id="getbuildreport">Update</button>
 	</div>
+</div>
+<div>
+<button id="save_filter" >Save options</button>
+<button id="load_filter" >Load options</button>
 </div>
 <button id="downloadCSV" >Download Test (CSV)</button>
 Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Class/Package"/>
@@ -142,10 +146,10 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
     }
 	function generateCharts() {
 		var chartType = {
-			type: jQuery("#chartDataType").val(),
-			line: jQuery('#linegraph').is(':checked'),
-			bar: jQuery('#bargraph').is(':checked'),
-			pie: jQuery('#piegraph').is(':checked')
+			type: document.getElementById('chartDataType').value,
+			line: document.getElementById('linegraph').checked,
+			bar: document.getElementById('bargraph').checked,
+			pie: document.getElementById('piegraph').checked,
 		}
 		generateChart(chartType);
 
@@ -153,30 +157,36 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 		window.dispatchEvent(new Event('resize'));
 	}
 
-	jQuery(document).ready(function () {
-		jQuery("#allnoofbuilds")[0].checked = ${it.showAllBuilds};
-		jQuery("#show-build-durations")[0].checked = ${it.showBuildTime};
-		jQuery("#hide-config-methods")[0].checked = ${it.hideConfigurationMethods};
-		jQuery("#linegraph")[0].checked = ${it.showLineGraph};
-		jQuery("#bargraph")[0].checked = ${it.showBarGraph};
-		jQuery("#piegraph")[0].checked = ${it.showPieGraph};
-		jQuery("#noofbuilds").attr('disabled', ${it.showAllBuilds});
+    document.addEventListener("DOMContentLoaded", function(event) {
+        document.getElementById('allnoofbuilds').checked = ${it.showAllBuilds};
+        document.getElementById('show-build-durations').checked = ${it.showBuildTime};
+        document.getElementById('hide-config-methods').checked = ${it.hideConfigurationMethods};
+        document.getElementById('linegraph').checked = ${it.showLineGraph};
+        document.getElementById('bargraph').checked = ${it.showBarGraph};
+        document.getElementById('piegraph').checked = ${it.showPieGraph};
+        document.getElementById('noofbuilds').disabled = ${it.showAllBuilds};
+        if ("${it.chartDataType}" === "runtime") {
+            document.getElementById('chartDataType').value = "runtime";
+            document.getElementById('bargraph').disabled = true;
+        }
+        else {
+            document.getElementById('chartDataType').value = "passfail";
+        }
 
-		if ("${it.chartDataType}" === "runtime") {
-			jQuery("#chartDataType").val("runtime");
-			jQuery("#bargraph").attr('disabled', true);
-		} else {
-			jQuery("#chartDataType").val("passfail");
-		}
+        document.querySelector('#build-filter').addEventListener('keydown', function(e) {
+            if (e.keyCode === 13){
+                populateTemplate();
+            }
+        });
+        setCustomStatuses();
+        populateTemplate();
+    });
 
-		jQuery("#filter").on('keyup', function (e) {
-    		if (e.keyCode === 13) {
-        		searchTests();
-    		}
-		});
-		setCustomStatuses();
-		populateTemplate();
-	});
+    document.querySelector('#filter').addEventListener('keyup', function(e) {
+        if (e.keyCode === 13){
+            searchTests();
+        }
+    });
 
 	jQuery("#settingsmenubutton").click(function () {
 		jQuery("#settingsmenu").slideToggle(400, function () {
@@ -188,36 +198,45 @@ Search: <input id="filter" class="table-filter" type="text" placeholder="Test/Cl
 		window.dispatchEvent(new Event('resize'));
 	});
 
-	jQuery("#allnoofbuilds").change(function () {
-		jQuery("#noofbuilds").attr('disabled', this.checked);
-	});
+	allnoofbuilds.onchange = () => document.getElementById('noofbuilds').disabled = document.getElementById('allnoofbuilds').checked
 
-	jQuery("#chartDataType").change(function (e) {
-		jQuery("#bargraph").attr('disabled', e.target.value == "runtime");
-	});
+	chartDataType.onchange = () => document.getElementById('chartDataType').value == "runtime" ? document.getElementById('bargraph').disabled = "runtime" : document.getElementById('bargraph').disabled = ""
 
-	jQuery("#downloadCSV").click(function () {
-	    var noOfBuilds = "-1";
-
-        if (!jQuery("#allnoofbuilds").is(":checked")) {
-            noOfBuilds = jQuery("#noofbuilds").val();
-        }
+    downloadCSV.onclick = () => {
+        var noOfBuilds = "-1";
+        if (!document.getElementById('allnoofbuilds').checked)
+            noOfBuilds = document.getElementById('noofbuilds').value;
         remoteAction.getExportCSV(displayValues, noOfBuilds, function(t) {
             download("Test Results.csv", t.responseObject());
         })
-    });
+    }
 
-	jQuery("#getbuildreport").click(function () {
-		populateTemplate();
-	});
+    getbuildreport.onclick = () => {
+        populateTemplate();
+    }
 
-	jQuery("#expandall").click(function () {
-		expandAll();
-	});
+    save_filter.onclick = () => remoteAction.saveBuildFilter(document.getElementById("noofbuilds").value != "" ? document.getElementById("noofbuilds").value : " ",
+                                                             document.getElementById("build-filter").value != "" ? document.getElementById("build-filter").value : " ",
+                                                             document.getElementById("show-build-durations").checked, document.getElementById("hide-config-methods").checked,
+                                                             document.getElementById("linegraph").checked, document.getElementById("bargraph").checked,
+                                                             document.getElementById("piegraph").checked);
 
-	jQuery("#collapseall").click(function () {
-		collapseAll();
-	});
+    load_filter.onclick = () =>{
+        remoteAction.readBuildFilter(function(t){
+            var settings = t.responseObject().split("|")
+            settings[0] != " " ? document.getElementById("noofbuilds").value = settings[0] : ""
+            settings[1] != " " ? document.getElementById("build-filter").value = settings[1] : ""
+            document.getElementById("show-build-durations").checked = (settings[2] === 'true')
+            document.getElementById("hide-config-methods").checked = (settings[3] === 'true')
+            document.getElementById("linegraph").checked = (settings[4] === 'true')
+            document.getElementById("bargraph").checked = (settings[5] === 'true')
+            document.getElementById("piegraph").checked = (settings[6] === 'true')
+            populateTemplate();
+        })
+    }
+
+    expandall.onclick = () => expandAll()
+    collapseall.onclick = () => collapseAll()
 
     function setCustomStatuses(){
         customStatuses['PASSED'] = "${it.passedRepresentation}";
