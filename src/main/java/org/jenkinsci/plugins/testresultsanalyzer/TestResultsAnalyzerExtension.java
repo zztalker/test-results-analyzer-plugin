@@ -12,12 +12,12 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Job;
 import hudson.util.FormValidation;
+import jenkins.model.RunAction2;
 import jenkins.model.TransientActionFactory;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
 import java.util.logging.Logger;
 
 @Extension
@@ -63,7 +63,6 @@ public class TestResultsAnalyzerExtension extends TransientActionFactory<Job> im
         private boolean hideConfigurationMethods = false;
         private String runTimeLowThreshold = "0.5";
         private String runTimeHighThreshold = "1.0";
-
         private static final String passFailString = "passfail";
         private static final String runtimeString = "runtime";
         private boolean useCustomStatusNames;

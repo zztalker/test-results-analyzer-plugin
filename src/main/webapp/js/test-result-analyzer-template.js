@@ -53,7 +53,7 @@ var tableBody = '<div class="heading">' +
     '{{> tableBodyTemplate}}' +
     '\n' + '{{/each}}';
 
-var worstTestsTableBody = '<h2 align="center">Top 10 Most Broken Tests</h2>' +
+var worstTestsTableBody = '<h2 align="center">Top 10 Most Broken Test</h2>' +
     '\n' + '{{#if this.length}}' +
     '<div class=table>' +
     '\n' + '<div class="heading">' +

@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.testresultsanalyzer.config;
 
+import jenkins.model.RunAction2;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**

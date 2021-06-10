@@ -24,7 +24,7 @@ public class JsTreeUtil {
             buildJson.add(buildNumber.toString());
         }
         tree.put("builds", buildJson);
-
+        tree.put("lastBuild", builds.get(0));
         JSONArray results = new JSONArray();
         for (Map.Entry<String, ? extends Info> entry : resultInfo.getPackageResults().entrySet()) {
             results.add(createJson(builds, entry.getValue(), hideConfigMethods));
@@ -60,7 +60,6 @@ public class JsTreeUtil {
         JSONArray children = new JSONArray();
         for (Map.Entry<String, ? extends Info> entry : childrenInfo.entrySet()) {
             if (!hideConfigMethods || !entry.getValue().isConfig()) {
-
                 children.add(createJson(builds, entry.getValue(), hideConfigMethods));
             }
         }
@@ -86,8 +85,6 @@ public class JsTreeUtil {
             json.put("statusString", result.getStatusString());
             json.put("url", result.getUrl());
         }
-
-
         return json;
     }
 }
